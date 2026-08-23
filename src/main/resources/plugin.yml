@@ -1,6 +1,6 @@
-name: ImevoQuests
+name: Quests
 version: '1.0'
-main: com.person98.imevoquest.ImevoQuest
+main: com.person98.quests.Quests
 api-version: '26.2'
 prefix: Quests
 depend: [SmartInvs, PlaceholderAPI]

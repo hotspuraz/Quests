@@ -1,0 +1,27 @@
+package com.person98.quests.controller;
+
+import com.person98.quests.Quests;
+import com.person98.quests.data.Quest;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
+public interface QuestController {
+   void constructor(Quests quests);
+
+   Quest find(String name);
+
+   Quest firstStory();
+
+   List<Quest> getDailyQuests();
+
+   void forEach(Consumer<Quest> consumer);
+
+   Stream<Quest> stream();
+
+   void selectNewDailyQuests(int count);
+
+   void savePersistedDailyQuests(String date);
+
+   void reloadDailyQuestConfig();
+}

@@ -49,7 +49,7 @@ tasks.processResources {
 }
 
 tasks.jar {
-    archiveFileName = "ImevoQuest-${project.version}.jar"
+    archiveFileName = "Quests-${project.version}.jar"
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
     // Reproduce the original Maven Shade output without adding another plugin.
