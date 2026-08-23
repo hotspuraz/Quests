@@ -1,8 +1,5 @@
-# Keep the legacy Bukkit identity for compatibility. TreeFeller treats a
-# plugin named exactly "Quests" as LeonardoBishop's unrelated Quests plugin,
-# and Bukkit uses this value for the existing plugin data-folder name.
-name: ImevoQuests
-version: '1.0.1'
+name: Quests
+version: '1.0.2'
 main: com.person98.quests.Quests
 api-version: '26.2'
 prefix: Quests

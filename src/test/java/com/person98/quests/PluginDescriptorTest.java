@@ -12,7 +12,7 @@ class PluginDescriptorTest {
    void pluginYmlIsAcceptedByThePurpurApiParser() throws Exception {
       try (InputStream descriptor = getClass().getResourceAsStream("/plugin.yml")) {
          PluginDescriptionFile plugin = new PluginDescriptionFile(descriptor);
-         assertEquals("ImevoQuests", plugin.getName());
+         assertEquals("Quests", plugin.getName());
          assertEquals("com.person98.quests.Quests", plugin.getMain());
          assertEquals("26.2", plugin.getAPIVersion());
          assertTrue(plugin.getDepend().contains("SmartInvs"));
