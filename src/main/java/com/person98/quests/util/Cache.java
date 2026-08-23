@@ -3,6 +3,7 @@ package com.person98.quests.util;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.TreeMultimap;
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class Cache<K, V> {
    public Collection<V> values() {
       this.lazyCheck();
       synchronized (this.internal) {
-         return this.internal.values();
+         return new ArrayList<>(this.internal.values());
       }
    }
 

@@ -28,6 +28,8 @@ import com.person98.quests.util.QuestPlaceholder;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.File;
 import java.util.List;
+import java.sql.Connection;
+import java.sql.SQLException;
 import me.clip.placeholderapi.PlaceholderAPI;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
@@ -57,7 +59,13 @@ public final class Quests extends JavaPlugin implements Listener {
    }
 
    public void onEnable() {
-      this.storage = new Storage(this);
+      try {
+         this.storage = new Storage(this);
+      } catch (RuntimeException exception) {
+         this.getLogger().log(java.util.logging.Level.SEVERE, "Quests cannot start because its database is unavailable", exception);
+         this.getServer().getPluginManager().disablePlugin(this);
+         return;
+      }
       this.questController = new QuestControllerImpl();
       this.questController.constructor(this);
       this.userController = new UserControllerImpl();
@@ -71,7 +79,7 @@ public final class Quests extends JavaPlugin implements Listener {
       this.registerCommand("que", new QueCommand(this));
       // Capture persistence snapshots on the main thread; SQL itself is serialized by Storage.
       new UserUpdateSchedule().runTaskTimer(this, 0L, 1200L);
-      new LeaderboardExcludedRunnable().runTaskTimer(this, 0L, 1200L);
+      new LeaderboardExcludedRunnable().runTaskTimer(this, 20L, 20L);
       new UserQuestSchedule().runTaskTimer(this, 0L, 1L);
       new DailyQuestResetTask(this).runTaskTimer(this, 0L, 1200L);
       new QuestPlaceholder(this).register();
@@ -157,6 +165,8 @@ public final class Quests extends JavaPlugin implements Listener {
       String username = fileConfiguration.getString("mysql.username");
       String password = fileConfiguration.getString("mysql.password");
       dataSource.setMaximumPoolSize(20);
+      dataSource.setConnectionTimeout(10000L);
+      dataSource.setValidationTimeout(5000L);
       dataSource.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database);
       dataSource.setUsername(username);
       dataSource.setPassword(password);
@@ -167,6 +177,30 @@ public final class Quests extends JavaPlugin implements Listener {
       dataSource.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
       dataSource.addDataSourceProperty("useServerPrepStmts", "true");
       return dataSource;
+   }
+
+   public void reloadPluginConfiguration() {
+      this.reloadConfig();
+      HikariDataSource candidate = this.getDataSourceFromConfig();
+      try (Connection ignored = candidate.getConnection()) {
+         // Validate before replacing the working pool.
+      } catch (SQLException exception) {
+         candidate.close();
+         throw new IllegalStateException("The reloaded MySQL settings could not establish a connection", exception);
+      }
+
+      if (this.storage != null) {
+         this.storage.flushPendingWrites();
+      }
+      HikariDataSource previous = this.hikariDataSource;
+      this.hikariDataSource = candidate;
+      if (previous != null) {
+         previous.close();
+      }
+      this.loadRewardsConfig();
+      if (this.questController != null) {
+         this.questController.reloadDailyQuestConfig();
+      }
    }
 
    private void registerCommand(String command, CommandExecutor clazz) {

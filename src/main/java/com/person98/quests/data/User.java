@@ -165,7 +165,9 @@ public class User {
             });
          }
 
-         this.updateBossBar();
+         if (notify) {
+            this.updateBossBar();
+         }
       }
    }
 
@@ -190,6 +192,10 @@ public class User {
    }
 
    public void switchToDailyQuest(Quest newQuest) {
+      this.switchToDailyQuest(newQuest, true);
+   }
+
+   public void switchToDailyQuest(Quest newQuest, boolean notify) {
       if (newQuest == null) {
          Quest current = this.getCurrentDailyQuest();
          if (current != null) {
@@ -202,7 +208,9 @@ public class User {
          }
 
          this.ongoingDailyQuestId = null;
-         this.updateBossBar();
+         if (notify) {
+            this.updateBossBar();
+         }
       } else if (!newQuest.isStory()) {
          Gson gson = new Gson();
          Quest current = this.getCurrentDailyQuest();
@@ -255,14 +263,16 @@ public class User {
          this.currentQuests.put(newQuest, stageIndex);
          this.questsStage.put(newQuest, stage);
          this.ongoingDailyQuestId = newQuest.getIdentifier();
-         Player player = this.getPlayer();
+         Player player = notify ? this.getPlayer() : null;
          if (player != null && player.isOnline()) {
             for (String message : stage.getStartMessages()) {
                player.sendMessage(message);
             }
          }
 
-         this.updateBossBar();
+         if (notify) {
+            this.updateBossBar();
+         }
       }
    }
 

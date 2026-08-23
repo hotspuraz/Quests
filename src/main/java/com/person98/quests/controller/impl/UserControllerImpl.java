@@ -22,7 +22,7 @@ public class UserControllerImpl implements UserController {
    @Override
    public void constructor(Quests quests) {
       this.quests = quests;
-      this.users = new Cache<>(TimeUnit.DAYS.toMillis(1L));
+      this.users = new Cache<>(TimeUnit.DAYS.toMillis(3650L));
       Bukkit.getOnlinePlayers().forEach(this::create);
    }
 
@@ -51,17 +51,20 @@ public class UserControllerImpl implements UserController {
    }
 
    @Override
-   public void create(UUID uniqueId) {
+   public synchronized void create(UUID uniqueId) {
+      if (this.users.containsKey(uniqueId)) {
+         return;
+      }
       User user = this.quests.getStorage().loadUser(uniqueId);
       this.quests.getStorage().loadDailyQuestProgress(user);
       if (user.getCurrentQuests().isEmpty() && user.getCompletedTasks().isEmpty()) {
          Quest quest = this.quests.getQuestController().firstStory();
          if (quest != null) {
-            user.initializeQuest(quest);
+            user.initializeQuest(quest, false);
          }
       }
 
-      List<Quest> currentDaily = Quests.getInstance().getQuestController().getDailyQuests();
+      List<Quest> currentDaily = this.quests.getQuestController().getDailyQuests();
       Set<String> validIds = new HashSet<>();
 
       for (Quest q : currentDaily) {
@@ -77,10 +80,10 @@ public class UserControllerImpl implements UserController {
       Quest ongoingQuest = null;
       if (ongoingId != null) {
          if (validIds.contains(ongoingId)) {
-            ongoingQuest = Quests.getInstance().getQuestController().find(ongoingId);
+            ongoingQuest = this.quests.getQuestController().find(ongoingId);
             if (ongoingQuest != null) {
                if (!user.getQuests().contains(ongoingQuest)) {
-                  user.switchToDailyQuest(ongoingQuest);
+                  user.switchToDailyQuest(ongoingQuest, false);
                }
             } else {
                user.setOngoingDailyQuestId(null);
@@ -104,7 +107,7 @@ public class UserControllerImpl implements UserController {
                user.getDisabledQuests().remove(quest);
             }
 
-            if (!user.getQuests().contains(quest)) {
+            if (user.getQuests().contains(quest)) {
                user.getQuests().remove(quest);
                user.getCurrentQuests().remove(quest);
                user.getQuestsStage().remove(quest);
@@ -112,7 +115,6 @@ public class UserControllerImpl implements UserController {
          }
       }
 
-      user.updateBossBar();
       user.setLastUpdate(System.currentTimeMillis() + 180000L);
       this.users.put(uniqueId, user);
    }
@@ -132,6 +134,7 @@ public class UserControllerImpl implements UserController {
          }
 
          this.quests.getStorage().saveUser(user);
+         this.users.invalidate(uniqueId);
       }
    }
 
@@ -147,8 +150,7 @@ public class UserControllerImpl implements UserController {
 
    @Override
    public void resetAllDailyQuestProgress() {
-      List<Quest> currentDaily = Quests.getInstance().getQuestController().getDailyQuests();
-      Quests.getInstance().getStorage().wipeDailyQuestProgress();
+      this.quests.getStorage().wipeDailyQuestProgress();
       this.forEach(user -> {
          user.getQuests().removeIf(q -> !q.isStory());
          user.getDisabledQuests().removeIf(q -> !q.isStory());

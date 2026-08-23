@@ -9,8 +9,26 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 
 public class UserListener implements Listener {
+   @EventHandler
+   public void onPlayerPreLogin(AsyncPlayerPreLoginEvent event) {
+      try {
+         Quests.getInstance().getUserController().create(event.getUniqueId());
+      } catch (RuntimeException exception) {
+         Quests.getInstance().getLogger().log(
+            java.util.logging.Level.SEVERE,
+            "Could not load quest data for " + event.getName(),
+            exception
+         );
+         event.disallow(
+            AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
+            net.kyori.adventure.text.Component.text("Your quest data could not be loaded. Please try again shortly.")
+         );
+      }
+   }
+
    @EventHandler
    public void onPlayerJoin(PlayerJoinEvent event) {
       User user = Quests.getInstance().getUserController().find(event.getPlayer());

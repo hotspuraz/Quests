@@ -13,6 +13,7 @@ class PluginDescriptorTest {
       try (InputStream descriptor = getClass().getResourceAsStream("/plugin.yml")) {
          PluginDescriptionFile plugin = new PluginDescriptionFile(descriptor);
          assertEquals("Quests", plugin.getName());
+         assertEquals("1.0.3", plugin.getVersion());
          assertEquals("com.person98.quests.Quests", plugin.getMain());
          assertEquals("26.2", plugin.getAPIVersion());
          assertTrue(plugin.getDepend().contains("SmartInvs"));

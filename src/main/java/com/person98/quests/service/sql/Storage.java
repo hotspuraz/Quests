@@ -14,15 +14,18 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Set;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 public class Storage {
    private final Quests quests;
    protected final StorageImplementation implementation;
    private Long lastRecalculated;
-   private boolean recalculating;
-   private final List<SimpleUser> leaderboard = Lists.newArrayList();
-   private final List<String> excluded = Lists.newArrayList();
+   private final AtomicBoolean recalculating = new AtomicBoolean();
+   private volatile List<SimpleUser> leaderboard = List.of();
+   private final Set<String> excluded = ConcurrentHashMap.newKeySet();
    private final ExecutorService writes = Executors.newSingleThreadExecutor(runnable -> {
       Thread thread = new Thread(runnable, "Quests-SQL-Writer");
       thread.setDaemon(true);
@@ -58,11 +61,20 @@ public class Storage {
    }
 
    public List<SimpleUser> getLeaderboard() {
-      if (this.lastRecalculated == null || this.lastRecalculated <= System.currentTimeMillis()) {
+      if ((this.lastRecalculated == null || this.lastRecalculated <= System.currentTimeMillis())
+         && this.recalculating.compareAndSet(false, true)) {
          this.lastRecalculated = System.currentTimeMillis() + 60000L;
-         this.recalculating = true;
-         this.leaderboard.clear();
-         this.implementation.recalculateLeaderboard(this.leaderboard, this.excluded, () -> this.recalculating = false);
+         this.implementation.recalculateLeaderboard(
+            Set.copyOf(this.excluded),
+            calculated -> {
+               this.leaderboard = calculated;
+               this.recalculating.set(false);
+            },
+            failure -> {
+               this.quests.getLogger().log(java.util.logging.Level.WARNING, "Could not recalculate the quest leaderboard", failure);
+               this.recalculating.set(false);
+            }
+         );
       }
 
       return this.leaderboard;
@@ -152,10 +164,10 @@ public class Storage {
    }
 
    public boolean isRecalculating() {
-      return this.recalculating;
+      return this.recalculating.get();
    }
 
-   public List<String> getExcluded() {
+   public Set<String> getExcluded() {
       return this.excluded;
    }
 }

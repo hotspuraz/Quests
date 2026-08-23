@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.Map.Entry;
 import java.util.concurrent.Executor;
+import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -40,10 +41,10 @@ public class StorageImplementation implements SQLQuery {
          statement.clearBatch();
          connection.close();
       } catch (SQLException exception) {
-         System.out.println("An error occurred while creating the tables.");
+         throw new IllegalStateException("Could not initialize the Quests database schema", exception);
       }
 
-      System.out.println("Tables successfully created.");
+      this.quests.getLogger().info("Database tables verified successfully.");
    }
 
    public User loadUser(UUID uniqueId) {
@@ -56,6 +57,7 @@ public class StorageImplementation implements SQLQuery {
             if (resultSet.next()) {
                user.setPoints(resultSet.getInt("points"));
                user.setViewStatus(resultSet.getBoolean("viewStatus"));
+               user.setStory(resultSet.getBoolean("story"));
             }
 
             preparedStatement.close();
@@ -65,60 +67,31 @@ public class StorageImplementation implements SQLQuery {
          try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM `quest_completed` WHERE `user_id` = ?;")) {
             preparedStatement.setString(1, uniqueId.toString());
             ResultSet resultSet = preparedStatement.executeQuery();
-            List<String> invalidQuests = Lists.newArrayList();
-
             while (resultSet.next()) {
                Quest quest = this.quests.getQuestController().find(resultSet.getString("quest"));
                if (quest != null) {
                   user.getCompletedTasks().add(quest);
-               } else {
-                  invalidQuests.add(resultSet.getString("quest"));
                }
             }
 
             preparedStatement.close();
             resultSet.close();
-            if (!invalidQuests.isEmpty()) {
-               try (Statement statement = connection.createStatement()) {
-                  for (String quest : invalidQuests) {
-                     statement.addBatch(String.format("DELETE FROM `quest_completed` WHERE `user_id` = '%s' AND `quest` = '%s';", uniqueId.toString(), quest));
-                  }
-
-                  statement.executeBatch();
-                  statement.clearBatch();
-               }
-            }
          }
 
          try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM `quest_current` WHERE `user_id` = ?;")) {
             preparedStatement.setString(1, uniqueId.toString());
             ResultSet resultSet = preparedStatement.executeQuery();
-            List<String> invalidQuests = Lists.newArrayList();
-
             while (resultSet.next()) {
                Quest quest = this.quests.getQuestController().find(resultSet.getString("quest"));
-               if (quest == null || user.getCompletedTasks().contains(quest)) {
-                  invalidQuests.add(resultSet.getString("quest"));
-               } else if (quest.isStory()) {
+               if (quest != null && !user.getCompletedTasks().contains(quest) && quest.isStory()) {
                   user.getQuests().add(quest);
                   user.getCurrentQuests().put(quest, resultSet.getInt("stage_id"));
                   user.getQuestsStage().put(quest, (Stage)this.quests.getGson().fromJson(resultSet.getString("stage_data"), Stage.class));
                }
             }
-
-            if (!invalidQuests.isEmpty()) {
-               try (Statement statement = connection.createStatement()) {
-                  for (String quest : invalidQuests) {
-                     statement.addBatch(String.format("DELETE FROM `quest_current` WHERE `user_id` = '%s' AND `quest` = '%s';", uniqueId.toString(), quest));
-                  }
-
-                  statement.executeBatch();
-                  statement.clearBatch();
-               }
-            }
          }
       } catch (SQLException exception) {
-         exception.printStackTrace();
+         throw new IllegalStateException("Could not load quest progress for " + uniqueId, exception);
       }
 
       return user;
@@ -239,7 +212,7 @@ public class StorageImplementation implements SQLQuery {
             }
          }
       } catch (SQLException exception) {
-         exception.printStackTrace();
+         throw new IllegalStateException("Could not load daily quest progress for " + user.getUniqueId(), exception);
       }
    }
 
@@ -261,6 +234,7 @@ public class StorageImplementation implements SQLQuery {
 
    public void wipeAllDailyQuestProgress() {
       try (Connection connection = this.quests.getHikariDataSource().getConnection()) {
+         connection.setAutoCommit(false);
          try (Statement statement = connection.createStatement()) {
             statement.execute("DELETE FROM `daily_quest_progress`");
          }
@@ -268,8 +242,9 @@ public class StorageImplementation implements SQLQuery {
          try (Statement statement = connection.createStatement()) {
             statement.execute("DELETE FROM `daily_quest_ongoing`");
          }
+         connection.commit();
       } catch (SQLException exception) {
-         exception.printStackTrace();
+         throw new IllegalStateException("Could not reset daily quest progress", exception);
       }
    }
 
@@ -396,13 +371,9 @@ public class StorageImplementation implements SQLQuery {
       }
    }
 
-   public void recalculateLeaderboard(List<SimpleUser> leaderboard, List<String> excluded, Runnable callback) {
-      if (this.task != null) {
-         Bukkit.getScheduler().cancelTask(this.task.getTaskId());
-         this.task = null;
-      }
-
+   public void recalculateLeaderboard(Collection<String> excluded, Consumer<List<SimpleUser>> callback, Consumer<Throwable> failure) {
       this.task = Bukkit.getScheduler().runTaskAsynchronously(this.quests, () -> {
+         List<SimpleUser> calculated = Lists.newArrayList();
          try (Connection connection = this.quests.getHikariDataSource().getConnection()) {
             try (PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM `quest_users` ORDER BY `points` DESC;")) {
                ResultSet resultSet = preparedStatement.executeQuery();
@@ -411,18 +382,13 @@ public class StorageImplementation implements SQLQuery {
                   UUID uniqueId = UUID.fromString(resultSet.getString("uniqueId"));
                   int points = resultSet.getInt("points");
                   if (!excluded.contains(uniqueId.toString())) {
-                     leaderboard.add(new SimpleUser(uniqueId, points));
+                     calculated.add(new SimpleUser(uniqueId, points));
                   }
                }
-
-               preparedStatement.close();
-               resultSet.close();
-               connection.close();
             }
-
-            callback.run();
-         } catch (SQLException exception) {
-            exception.printStackTrace();
+            callback.accept(List.copyOf(calculated));
+         } catch (Exception exception) {
+            failure.accept(exception);
          }
       });
    }

@@ -9,37 +9,35 @@ import java.util.concurrent.TimeUnit;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 
 public class LeaderboardExcludedRunnable extends BukkitRunnable {
-   private boolean recalculating;
-   private BukkitTask task;
+   private static final int PLAYERS_PER_RUN = 25;
+   private int cursor;
 
    public void run() {
-      if (!this.recalculating) {
-         if (this.task != null) {
-            Bukkit.getScheduler().cancelTask(this.task.getTaskId());
-         }
+      Storage storage = Quests.getInstance().getStorage();
+      List<SimpleUser> users = storage.getLeaderboard();
+      if (users.isEmpty()) {
+         this.cursor = 0;
+         return;
+      }
 
-         this.task = Bukkit.getScheduler().runTaskAsynchronously(Quests.getInstance(), () -> {
-            this.recalculating = true;
-            Storage storage = Quests.getInstance().getStorage();
-            List<SimpleUser> users = storage.getLeaderboard();
-            if (!users.isEmpty()) {
-               for (SimpleUser user : users) {
-                  OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(user.uniqueId());
-                  if (offlinePlayer.hasPlayedBefore() && offlinePlayer.getName() != null) {
-                     if (offlinePlayer.isOnline() || !this.isSpentDate(new Date(offlinePlayer.getLastPlayed()))) {
-                        storage.getExcluded().remove(user.uniqueId().toString());
-                     } else if (!storage.getExcluded().contains(user.uniqueId().toString())) {
-                        storage.getExcluded().add(user.uniqueId().toString());
-                     }
-                  }
-               }
+      int processed = 0;
+      while (processed < PLAYERS_PER_RUN && this.cursor < users.size()) {
+         SimpleUser user = users.get(this.cursor++);
+         OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(user.uniqueId());
+         if (offlinePlayer.hasPlayedBefore() && offlinePlayer.getName() != null) {
+            if (offlinePlayer.isOnline() || !this.isSpentDate(new Date(offlinePlayer.getLastPlayed()))) {
+               storage.getExcluded().remove(user.uniqueId().toString());
+            } else {
+               storage.getExcluded().add(user.uniqueId().toString());
             }
+         }
+         processed++;
+      }
 
-            this.recalculating = false;
-         });
+      if (this.cursor >= users.size()) {
+         this.cursor = 0;
       }
    }
 

@@ -28,9 +28,7 @@ public class QueCommand implements CommandExecutor, TabCompleter {
             return true;
          } else if (args[0].equalsIgnoreCase("reload")) {
             try {
-               this.quests.reloadConfig();
-               this.quests.loadRewardsConfig();
-               this.quests.getQuestController().reloadDailyQuestConfig();
+               this.quests.reloadPluginConfiguration();
                sender.sendMessage("§3§lSimpleQuests §7» §aConfiguration files reloaded successfully!");
                sender.sendMessage("§3§lSimpleQuests §7» §7- config.yml reloaded");
                sender.sendMessage("§3§lSimpleQuests §7» §7- rewards.yml reloaded");

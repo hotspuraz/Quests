@@ -1,5 +1,5 @@
 name: Quests
-version: '1.0.2'
+version: '1.0.3'
 main: com.person98.quests.Quests
 api-version: '26.2'
 prefix: Quests

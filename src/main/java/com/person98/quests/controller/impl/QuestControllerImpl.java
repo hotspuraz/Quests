@@ -12,6 +12,7 @@ import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -65,7 +66,7 @@ public class QuestControllerImpl implements QuestController {
       try {
          this.dailyQuestConfig.save(this.dailyQuestFile);
       } catch (Exception exception) {
-         exception.printStackTrace();
+         throw new IllegalStateException("Could not save daily_quests.yml", exception);
       }
    }
 
@@ -73,7 +74,13 @@ public class QuestControllerImpl implements QuestController {
       String resetTime = Quests.getInstance().getConfig().getString("reset-time", "00:00");
       LocalDate today = LocalDate.now();
       LocalTime currentTime = LocalTime.now();
-      LocalTime resetTimeParsed = LocalTime.parse(resetTime, DateTimeFormatter.ofPattern("HH:mm"));
+      LocalTime resetTimeParsed;
+      try {
+         resetTimeParsed = LocalTime.parse(resetTime, DateTimeFormatter.ofPattern("HH:mm"));
+      } catch (DateTimeParseException exception) {
+         Quests.getInstance().getLogger().warning("Invalid reset-time '" + resetTime + "'; expected HH:mm.");
+         return;
+      }
       String lastReset = this.dailyQuestConfig.getString("last_reset_date", "");
       boolean shouldReset = false;
       if (lastReset.isEmpty()) {
@@ -88,11 +95,13 @@ public class QuestControllerImpl implements QuestController {
       }
 
       if (shouldReset) {
-         this.selectNewDailyQuests(5);
-         this.savePersistedDailyQuests(today.toString());
          if (Quests.getInstance().getUserController() != null) {
             Quests.getInstance().getUserController().resetAllDailyQuestProgress();
+         } else {
+            Quests.getInstance().getStorage().wipeDailyQuestProgress();
          }
+         this.selectNewDailyQuests(5);
+         this.savePersistedDailyQuests(today.toString());
       } else if (this.dailyQuests.isEmpty()) {
          this.loadPersistedDailyQuests();
       }
