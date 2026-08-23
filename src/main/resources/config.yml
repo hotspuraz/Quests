@@ -1,0 +1,104 @@
+mysql:
+  host: 'localhost'
+  database: 'test'
+  port: 3306
+  username: 'root'
+  password: ''
+excluded_days: 1
+items:
+  daily:
+    title: "&3&lSimple Survival &7Daily Quests"
+    completed:
+      material: ENCHANTED_BOOK
+      name: "&a%name%"
+      amount: 1
+      lore:
+        - '&7Quest details'
+        - ''
+    non_completed:
+      material: BOOK
+      name: "&7%name%"
+      amount: 1
+      lore:
+        - '&7Quest details'
+        - ''
+        - '&cClick to reset current progress'
+        - ''
+    disabled:
+      material: BOOK
+      name: "&c%name%"
+      amount: 1
+      lore:
+        - '&7Quest details'
+        - ''
+        - '&aClick to start this quest.'
+        - ''
+    current:
+      material: WRITABLE_BOOK
+      name: "&6%name%"
+      amount: 1
+      lore:
+        - '&aQuest details'
+        - ''
+        - '&aTo resume the mission &eLeft-click'
+        - '&cTo reset current progress &eRight-click'
+        - ''
+  storyline:
+    title: "&3&lSimple Survival &7Storyline Quests"
+    completed:
+      material: ENCHANTED_BOOK
+      name: "&a%name%"
+      amount: 1
+      lore:
+        - '&7Quest details'
+        - ''
+    non_completed:
+      material: BOOK
+      name: "&c%name%"
+      amount: 1
+      lore:
+        - '&7Quest details'
+        - ''
+    current:
+      material: WRITABLE_BOOK
+      name: "&6%name%"
+      amount: 1
+      lore:
+        - '&aQuest details'
+        - ''
+        - '&aTo resume the mission &eLeft-click'
+        - '&cTo reset current progress &eRight-click'
+        - ''
+  main:
+    title: "&3&lSimple Survival &7Quests"
+    storyline:
+      material: ENCHANTED_BOOK
+      name: "&aStoryline Quests"
+      amount: 1
+      lore:
+        - ''
+        - '&7Click to see all storyline quests.'
+        - ''
+    leaderboard:
+      material: ENCHANTED_BOOK
+      name: "&aLeaderboard Users"
+      amount: 1
+      lore:
+        - ''
+        - '&7Click to show a leaderboard.'
+        - ''
+    daily:
+      material: ENCHANTED_BOOK
+      name: "&aDaily Quests"
+      amount: 1
+      lore:
+        - ''
+        - '&7Click to see all daily quests.'
+        - ''
+# Time of day (24h format) when daily quests reset, e.g., "00:00" for 12 AM server time
+reset-time: "00:00"
+daily-quest-reset-message:
+  - "&b━━━━━━━━━━━━ &3Daily Quests &b━━━━━━━━━━━━"
+  - "&bToday's quests have been refreshed!"
+  - "&bUse &3/quests &bto view them."
+  - "&b━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

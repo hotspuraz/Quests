@@ -1,0 +1,9 @@
+rewards:
+  commands:
+    - "give %player% minecraft:diamond 5"
+    - "xp add %player% 10 levels"
+    - "say Congratulations %player%, you've received your rewards!"
+  messages:
+    - "&aCongratulations on completing your quests!"
+    - "&4You have been rewarded. &lCheck your inventory!"
+    - "&#f542f2This is a hex color code message."
