@@ -8,6 +8,7 @@ import com.person98.quests.data.stage.RootType;
 import com.person98.quests.data.stage.Stage;
 import com.person98.quests.data.stage.impl.StageData;
 import com.person98.quests.util.ConfigurationHelper;
+import com.person98.quests.util.DailyReset;
 import java.io.File;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -70,31 +71,19 @@ public class QuestControllerImpl implements QuestController {
       }
    }
 
-   public void ensureDailyQuestsUpToDate() {
+   @Override
+   public boolean ensureDailyQuestsUpToDate() {
       String resetTime = Quests.getInstance().getConfig().getString("reset-time", "00:00");
-      LocalDate today = LocalDate.now();
-      LocalTime currentTime = LocalTime.now();
       LocalTime resetTimeParsed;
       try {
          resetTimeParsed = LocalTime.parse(resetTime, DateTimeFormatter.ofPattern("HH:mm"));
       } catch (DateTimeParseException exception) {
          Quests.getInstance().getLogger().warning("Invalid reset-time '" + resetTime + "'; expected HH:mm.");
-         return;
+         return false;
       }
+      LocalDate today = LocalDate.now();
       String lastReset = this.dailyQuestConfig.getString("last_reset_date", "");
-      boolean shouldReset = false;
-      if (lastReset.isEmpty()) {
-         shouldReset = currentTime.isAfter(resetTimeParsed);
-      } else {
-         try {
-            LocalDate lastResetDate = LocalDate.parse(lastReset);
-            shouldReset = lastResetDate.isBefore(today) && currentTime.isAfter(resetTimeParsed);
-         } catch (Exception exception) {
-            shouldReset = currentTime.isAfter(resetTimeParsed);
-         }
-      }
-
-      if (shouldReset) {
+      if (DailyReset.isDue(lastReset, today, LocalTime.now(), resetTimeParsed)) {
          if (Quests.getInstance().getUserController() != null) {
             Quests.getInstance().getUserController().resetAllDailyQuestProgress();
          } else {
@@ -102,9 +91,12 @@ public class QuestControllerImpl implements QuestController {
          }
          this.selectNewDailyQuests(5);
          this.savePersistedDailyQuests(today.toString());
-      } else if (this.dailyQuests.isEmpty()) {
+         return true;
+      }
+      if (this.dailyQuests.isEmpty()) {
          this.loadPersistedDailyQuests();
       }
+      return false;
    }
 
    @Override

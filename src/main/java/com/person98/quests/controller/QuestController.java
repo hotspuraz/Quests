@@ -24,4 +24,7 @@ public interface QuestController {
    void savePersistedDailyQuests(String date);
 
    void reloadDailyQuestConfig();
+
+   /** Rotates the daily quests if a reset is due. Returns true when a reset happened. */
+   boolean ensureDailyQuestsUpToDate();
 }
