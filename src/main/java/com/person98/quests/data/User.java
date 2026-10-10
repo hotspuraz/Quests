@@ -29,7 +29,7 @@ public class User {
    private final ConcurrentHashMap<Quest, Stage> questsStage = new ConcurrentHashMap<>();
    private final LinkedList<Quest> completedTasks = Lists.newLinkedList();
    private final LinkedList<Quest> disabledQuests = Lists.newLinkedList();
-   private transient long lastUpdate;
+   private volatile transient long lastUpdate;
    private transient BossBar bossBar;
    private transient String nextQuest;
    private transient long storyDelay;

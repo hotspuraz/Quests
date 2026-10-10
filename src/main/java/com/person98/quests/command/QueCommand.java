@@ -53,8 +53,12 @@ public class QueCommand implements CommandExecutor, TabCompleter {
                   uniqueId = player.getUniqueId();
                }
 
-               sender.sendMessage("§3§lSimpleQuests §7» §aResetting player data §e" + Bukkit.getOfflinePlayer(uniqueId).getName());
-               Quests.getInstance().getStorage().resetUser(uniqueId);
+               String targetName = Bukkit.getOfflinePlayer(uniqueId).getName();
+               if (Quests.getInstance().getStorage().resetUser(uniqueId)) {
+                  sender.sendMessage("§3§lSimpleQuests §7» §aReset player data for §e" + targetName);
+               } else {
+                  sender.sendMessage("§3§lSimpleQuests §7» §cCould not reset §e" + targetName + "§c. See the console for details.");
+               }
                return true;
             }
          } else if (args[0].equalsIgnoreCase("set")) {
@@ -91,7 +95,10 @@ public class QueCommand implements CommandExecutor, TabCompleter {
             user.setStoryDelay(0L);
             user.clearBossBar();
             user.updateBossBar();
-            this.quests.getStorage().saveUserSync(user);
+            if (!this.quests.getStorage().saveUserSync(user)) {
+               sender.sendMessage("§3§lSimpleQuests §7» §cThe change was applied in memory but could not be saved. See the console for details.");
+               return true;
+            }
             sender.sendMessage(
                "§3§lSimpleQuests §7» §aDaily quests unlocked for §e"
                   + player.getName()

@@ -6,14 +6,11 @@ import com.person98.quests.data.SimpleUser;
 import com.person98.quests.data.User;
 import com.person98.quests.service.sql.impl.StorageImplementation;
 import java.io.File;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Set;
@@ -26,14 +23,11 @@ public class Storage {
    private final AtomicBoolean recalculating = new AtomicBoolean();
    private volatile List<SimpleUser> leaderboard = List.of();
    private final Set<String> excluded = ConcurrentHashMap.newKeySet();
-   private final ExecutorService writes = Executors.newSingleThreadExecutor(runnable -> {
-      Thread thread = new Thread(runnable, "Quests-SQL-Writer");
-      thread.setDaemon(true);
-      return thread;
-   });
+   private final WriteQueue writes;
 
    public Storage(Quests quests) {
       this.quests = quests;
+      this.writes = new WriteQueue(quests.getLogger(), Duration.ofSeconds(2));
       this.implementation = new StorageImplementation(this.quests);
    }
 
@@ -47,17 +41,27 @@ public class Storage {
          user.setLastUpdate(nextUpdate);
       }
       User[] snapshots = Arrays.stream(users).map(User::snapshot).toArray(User[]::new);
-      this.writes.execute(() -> this.implementation.saveUser(snapshots));
+      this.writes.submit(
+         "save " + users.length + " user(s)",
+         () -> this.implementation.saveUser(snapshots),
+         // Make the periodic saver pick these users up again on its next run instead of waiting three minutes.
+         failure -> {
+            for (User user : users) {
+               user.setLastUpdate(0L);
+            }
+         }
+      );
    }
 
-   public void saveUserSync(User... users) {
-      this.flushPendingWrites();
-      this.implementation.saveUser(Arrays.stream(users).map(User::snapshot).toArray(User[]::new));
+   /** Returns false (after logging) if the save could not be completed. */
+   public boolean saveUserSync(User... users) {
+      User[] snapshots = Arrays.stream(users).map(User::snapshot).toArray(User[]::new);
+      return this.writes.runNow("save " + users.length + " user(s)", () -> this.implementation.saveUser(snapshots));
    }
 
-   public void resetUser(UUID uniqueId) {
-      this.flushPendingWrites();
-      this.implementation.reset(uniqueId);
+   /** Returns false (after logging) if the reset could not be completed. */
+   public boolean resetUser(UUID uniqueId) {
+      return this.writes.runNow("reset " + uniqueId, () -> this.implementation.reset(uniqueId));
    }
 
    public List<SimpleUser> getLeaderboard() {
@@ -82,12 +86,12 @@ public class Storage {
 
    public void saveDailyQuestProgress(User user) {
       User snapshot = user.snapshot();
-      this.writes.execute(() -> this.implementation.saveDailyQuestProgress(snapshot));
+      this.writes.submit("daily progress for " + snapshot.getUniqueId(), () -> this.implementation.saveDailyQuestProgress(snapshot), failure -> { });
    }
 
    public void saveDailyQuestProgressBatch(Collection<User> users) {
       List<User> snapshots = users.stream().map(User::snapshot).toList();
-      this.writes.execute(() -> this.implementation.saveDailyQuestProgressBatch(snapshots));
+      this.writes.submit("daily progress for " + snapshots.size() + " user(s)", () -> this.implementation.saveDailyQuestProgressBatch(snapshots), failure -> { });
    }
 
    public void loadDailyQuestProgress(User user) {
@@ -118,7 +122,7 @@ public class Storage {
                file.delete();
             }
          } catch (Exception exception) {
-            exception.printStackTrace();
+            this.quests.getLogger().log(java.util.logging.Level.WARNING, "Could not migrate legacy daily progress file " + file.getName(), exception);
          }
       }
    }
@@ -129,26 +133,16 @@ public class Storage {
    }
 
    public void flushPendingWrites() {
-      try {
-         this.writes.submit(() -> { }).get();
-      } catch (InterruptedException exception) {
-         Thread.currentThread().interrupt();
-         throw new IllegalStateException("Interrupted while flushing quest progress", exception);
-      } catch (ExecutionException exception) {
-         throw new IllegalStateException("Could not flush quest progress", exception.getCause());
-      }
+      this.writes.flush();
    }
 
    public void shutdown() {
-      this.flushPendingWrites();
-      this.writes.shutdown();
-      try {
-         if (!this.writes.awaitTermination(10, TimeUnit.SECONDS)) {
-            this.quests.getLogger().warning("Quest database writer did not stop within 10 seconds.");
-         }
-      } catch (InterruptedException exception) {
-         Thread.currentThread().interrupt();
-      }
+      this.writes.shutdown(Duration.ofSeconds(10));
+   }
+
+   /** Number of database writes abandoned after retries; useful for diagnostics. */
+   public long getFailedWriteCount() {
+      return this.writes.getFailureCount();
    }
 
    public Quests getQuests() {

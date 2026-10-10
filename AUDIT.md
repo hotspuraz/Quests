@@ -1,6 +1,6 @@
 # Quests code audit
 
-Branch `cleanup` (from `5bb3d76`). Read-only review so far: no behaviour has been changed.
+Branch `cleanup` (from `5bb3d76`). Items 1-3 are fixed; the rest are open.
 Reviewed: storage/SQL, `User`, `Quest`, `Stage`, controllers, tasks, `UserListener`, `QueCommand`, `Cache`, build and `plugin.yml`.
 Not yet reviewed: the 21 quest-type listeners, the inventories (SmartInvs UI), `ItemStackBuilder`, `QuestPlaceholder`, `StageData`.
 
@@ -8,7 +8,7 @@ Severity = likelihood x impact on a live server.
 
 ## High
 
-1. **Daily reset can be skipped or doubled** - `task/DailyQuestResetTask.java`
+1. **[FIXED] Daily reset can be skipped or doubled** - `task/DailyQuestResetTask.java`
    It runs every 1200 ticks and only resets when the clock string equals `reset-time` exactly (`now.equals(resetTime)`).
    Tick drift or a lag spike can miss the target minute, and then nothing resets until the next day.
    `lastResetDate` is kept only in memory, so a restart during the reset minute resets a second time.
@@ -16,17 +16,22 @@ Severity = likelihood x impact on a live server.
    The two code paths use different rules. The reset also does blocking SQL on the main thread (`wipeDailyQuestProgress` flushes the writer and runs DELETEs).
    Fix: one catch-up method (`lastReset < today && now >= resetTime`), called every minute, with the DB work off-thread.
 
-2. **`Quest.equals/hashCode` walk the whole quest graph** - `data/Quest.java`
+2. **[FIXED] `Quest.equals/hashCode` walk the whole quest graph** - `data/Quest.java`
    `hashCode` includes `getNext()` (a controller lookup) and every stage, and `Quest` is the key of the `ConcurrentHashMap`s in `User`.
    Every map lookup re-hashes the stage list and the entire `next` chain.
    If two story quests ever point at each other (config typo), `hashCode`/`equals` recurse until `StackOverflowError`.
    It also hashes mutable fields while quests live in a `HashSet`.
    This is decompiled-Lombok output. Fix: equality by `identifier` only (same for `User`: `uniqueId`).
 
-3. **Silent persistence failures** - `StorageImplementation`
+3. **[FIXED] Silent persistence failures** - `StorageImplementation`
    `saveUser`, `saveDailyQuestProgress*`, `reset`, `wipeDailyQuestProgress` catch `SQLException`/`Exception` and only `printStackTrace()`.
    A DB outage means lost progress with nothing in the logs and no retry. `flushPendingWrites()` cannot see the failure either.
    Fix: log through the plugin logger, and decide on a retry or re-queue policy.
+
+Notes on the fixes: the reset's blocking DB wipe still runs on the main thread (only the rule changed).
+Failed writes are retried once after 2s, then logged at SEVERE; `saveUser` failures also re-arm the periodic saver.
+A player whose final save on quit fails twice is still lost, because there is no persistent retry queue.
+`Stage`/`StageData` still carry generated value-equality (item 11).
 
 ## Medium
 

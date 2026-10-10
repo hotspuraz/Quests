@@ -130,9 +130,7 @@ public class StorageImplementation implements SQLQuery {
             }
          }
       } catch (SQLException exception) {
-         exception.printStackTrace();
-      } catch (Exception exception) {
-         exception.printStackTrace();
+         throw new IllegalStateException("Could not save daily quest progress", exception);
       }
    }
 
@@ -181,9 +179,7 @@ public class StorageImplementation implements SQLQuery {
             preparedStatement.clearBatch();
          }
       } catch (SQLException exception) {
-         exception.printStackTrace();
-      } catch (Exception exception) {
-         exception.printStackTrace();
+         throw new IllegalStateException("Could not save daily quest progress batch", exception);
       }
    }
 
@@ -228,7 +224,7 @@ public class StorageImplementation implements SQLQuery {
             preparedStatement.execute();
          }
       } catch (SQLException exception) {
-         exception.printStackTrace();
+         throw new IllegalStateException("Could not wipe daily quest progress", exception);
       }
    }
 
@@ -322,9 +318,7 @@ public class StorageImplementation implements SQLQuery {
             }
          }
       } catch (SQLException exception) {
-         exception.printStackTrace();
-      } catch (Exception exception) {
-         exception.printStackTrace();
+         throw new IllegalStateException("Could not save quest users", exception);
       }
    }
 
@@ -367,7 +361,7 @@ public class StorageImplementation implements SQLQuery {
             }
          }
       } catch (SQLException exception) {
-         exception.printStackTrace();
+         throw new IllegalStateException("Could not reset quest data", exception);
       }
    }
 
