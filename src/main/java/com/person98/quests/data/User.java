@@ -422,145 +422,20 @@ public class User {
       this.storyDelay = storyDelay;
    }
 
+   /** Users are identified by their UUID alone. */
    @Override
    public boolean equals(Object o) {
-      if (o == this) {
-         return true;
-      } else if (!(o instanceof User other)) {
-         return false;
-      } else if (!other.canEqual(this)) {
-         return false;
-      } else if (this.isViewStatus() != other.isViewStatus()) {
-         return false;
-      } else if (this.getPoints() != other.getPoints()) {
-         return false;
-      } else if (this.isStory() != other.isStory()) {
-         return false;
-      } else {
-         Object this$uniqueId = this.getUniqueId();
-         Object other$uniqueId = other.getUniqueId();
-         if (this$uniqueId == null ? other$uniqueId == null : this$uniqueId.equals(other$uniqueId)) {
-            Object this$lastDailyRewardDate = this.getLastDailyRewardDate();
-            Object other$lastDailyRewardDate = other.getLastDailyRewardDate();
-            if (this$lastDailyRewardDate == null ? other$lastDailyRewardDate == null : this$lastDailyRewardDate.equals(other$lastDailyRewardDate)) {
-               Object this$quests = this.getQuests();
-               Object other$quests = other.getQuests();
-               if (this$quests == null ? other$quests == null : this$quests.equals(other$quests)) {
-                  Object this$currentQuests = this.getCurrentQuests();
-                  Object other$currentQuests = other.getCurrentQuests();
-                  if (this$currentQuests == null ? other$currentQuests == null : this$currentQuests.equals(other$currentQuests)) {
-                     Object this$questsStage = this.getQuestsStage();
-                     Object other$questsStage = other.getQuestsStage();
-                     if (this$questsStage == null ? other$questsStage == null : this$questsStage.equals(other$questsStage)) {
-                        Object this$completedTasks = this.getCompletedTasks();
-                        Object other$completedTasks = other.getCompletedTasks();
-                        if (this$completedTasks == null ? other$completedTasks == null : this$completedTasks.equals(other$completedTasks)) {
-                           Object this$disabledQuests = this.getDisabledQuests();
-                           Object other$disabledQuests = other.getDisabledQuests();
-                           if (this$disabledQuests == null ? other$disabledQuests == null : this$disabledQuests.equals(other$disabledQuests)) {
-                              Object this$dailyQuestProgress = this.getDailyQuestProgress();
-                              Object other$dailyQuestProgress = other.getDailyQuestProgress();
-                              if (this$dailyQuestProgress == null ? other$dailyQuestProgress == null : this$dailyQuestProgress.equals(other$dailyQuestProgress)
-                                 )
-                               {
-                                 Object this$ongoingDailyQuestId = this.getOngoingDailyQuestId();
-                                 Object other$ongoingDailyQuestId = other.getOngoingDailyQuestId();
-                                 return this$ongoingDailyQuestId == null
-                                    ? other$ongoingDailyQuestId == null
-                                    : this$ongoingDailyQuestId.equals(other$ongoingDailyQuestId);
-                              } else {
-                                 return false;
-                              }
-                           } else {
-                              return false;
-                           }
-                        } else {
-                           return false;
-                        }
-                     } else {
-                        return false;
-                     }
-                  } else {
-                     return false;
-                  }
-               } else {
-                  return false;
-               }
-            } else {
-               return false;
-            }
-         } else {
-            return false;
-         }
-      }
-   }
-
-   protected boolean canEqual(Object other) {
-      return other instanceof User;
+      return o == this || o instanceof User other && this.uniqueId.equals(other.uniqueId);
    }
 
    @Override
    public int hashCode() {
-      int PRIME = 59;
-      int result = 1;
-      result = result * 59 + (this.isViewStatus() ? 79 : 97);
-      result = result * 59 + this.getPoints();
-      result = result * 59 + (this.isStory() ? 79 : 97);
-      Object $uniqueId = this.getUniqueId();
-      result = result * 59 + ($uniqueId == null ? 43 : $uniqueId.hashCode());
-      Object $lastDailyRewardDate = this.getLastDailyRewardDate();
-      result = result * 59 + ($lastDailyRewardDate == null ? 43 : $lastDailyRewardDate.hashCode());
-      Object $quests = this.getQuests();
-      result = result * 59 + ($quests == null ? 43 : $quests.hashCode());
-      Object $currentQuests = this.getCurrentQuests();
-      result = result * 59 + ($currentQuests == null ? 43 : $currentQuests.hashCode());
-      Object $questsStage = this.getQuestsStage();
-      result = result * 59 + ($questsStage == null ? 43 : $questsStage.hashCode());
-      Object $completedTasks = this.getCompletedTasks();
-      result = result * 59 + ($completedTasks == null ? 43 : $completedTasks.hashCode());
-      Object $disabledQuests = this.getDisabledQuests();
-      result = result * 59 + ($disabledQuests == null ? 43 : $disabledQuests.hashCode());
-      Object $dailyQuestProgress = this.getDailyQuestProgress();
-      result = result * 59 + ($dailyQuestProgress == null ? 43 : $dailyQuestProgress.hashCode());
-      Object $ongoingDailyQuestId = this.getOngoingDailyQuestId();
-      return result * 59 + ($ongoingDailyQuestId == null ? 43 : $ongoingDailyQuestId.hashCode());
+      return this.uniqueId.hashCode();
    }
 
    @Override
    public String toString() {
-      return "User(uniqueId="
-         + this.getUniqueId()
-         + ", viewStatus="
-         + this.isViewStatus()
-         + ", points="
-         + this.getPoints()
-         + ", story="
-         + this.isStory()
-         + ", lastDailyRewardDate="
-         + this.getLastDailyRewardDate()
-         + ", quests="
-         + this.getQuests()
-         + ", currentQuests="
-         + this.getCurrentQuests()
-         + ", questsStage="
-         + this.getQuestsStage()
-         + ", completedTasks="
-         + this.getCompletedTasks()
-         + ", disabledQuests="
-         + this.getDisabledQuests()
-         + ", lastUpdate="
-         + this.getLastUpdate()
-         + ", bossBar="
-         + this.getBossBar()
-         + ", nextQuest="
-         + this.getNextQuest()
-         + ", storyDelay="
-         + this.getStoryDelay()
-         + ", dailyQuestProgress="
-         + this.getDailyQuestProgress()
-         + ", ongoingDailyQuestId="
-         + this.getOngoingDailyQuestId()
-         + ")";
+      return "User(" + this.uniqueId + ")";
    }
 
    public static class DailyQuestProgress {

@@ -5,6 +5,7 @@ import com.person98.quests.Quests;
 import com.person98.quests.data.stage.Stage;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 public class Quest {
    private String identifier;
@@ -95,98 +96,19 @@ public class Quest {
       this.stages = stages;
    }
 
+   /** Quests are identified by their config key alone; hashing stages or the story chain would be costly and can recurse. */
    @Override
    public boolean equals(Object o) {
-      if (o == this) {
-         return true;
-      } else if (!(o instanceof Quest other)) {
-         return false;
-      } else if (!other.canEqual(this)) {
-         return false;
-      } else if (this.getPoints() != other.getPoints()) {
-         return false;
-      } else if (this.isStory() != other.isStory()) {
-         return false;
-      } else if (this.isFirst() != other.isFirst()) {
-         return false;
-      } else if (this.getDelay() != other.getDelay()) {
-         return false;
-      } else {
-         Object this$identifier = this.getIdentifier();
-         Object other$identifier = other.getIdentifier();
-         if (this$identifier == null ? other$identifier == null : this$identifier.equals(other$identifier)) {
-            Object this$name = this.getName();
-            Object other$name = other.getName();
-            if (this$name == null ? other$name == null : this$name.equals(other$name)) {
-               Object this$description = this.getDescription();
-               Object other$description = other.getDescription();
-               if (this$description == null ? other$description == null : this$description.equals(other$description)) {
-                  Object this$next = this.getNext();
-                  Object other$next = other.getNext();
-                  if (this$next == null ? other$next == null : this$next.equals(other$next)) {
-                     Object this$stages = this.getStages();
-                     Object other$stages = other.getStages();
-                     return this$stages == null ? other$stages == null : this$stages.equals(other$stages);
-                  } else {
-                     return false;
-                  }
-               } else {
-                  return false;
-               }
-            } else {
-               return false;
-            }
-         } else {
-            return false;
-         }
-      }
-   }
-
-   protected boolean canEqual(Object other) {
-      return other instanceof Quest;
+      return o == this || o instanceof Quest other && this.identifier != null && this.identifier.equals(other.identifier);
    }
 
    @Override
    public int hashCode() {
-      int PRIME = 59;
-      int result = 1;
-      result = result * 59 + this.getPoints();
-      result = result * 59 + (this.isStory() ? 79 : 97);
-      result = result * 59 + (this.isFirst() ? 79 : 97);
-      long $delay = this.getDelay();
-      result = result * 59 + (int)($delay >>> 32 ^ $delay);
-      Object $identifier = this.getIdentifier();
-      result = result * 59 + ($identifier == null ? 43 : $identifier.hashCode());
-      Object $name = this.getName();
-      result = result * 59 + ($name == null ? 43 : $name.hashCode());
-      Object $description = this.getDescription();
-      result = result * 59 + ($description == null ? 43 : $description.hashCode());
-      Object $next = this.getNext();
-      result = result * 59 + ($next == null ? 43 : $next.hashCode());
-      Object $stages = this.getStages();
-      return result * 59 + ($stages == null ? 43 : $stages.hashCode());
+      return Objects.hashCode(this.identifier);
    }
 
    @Override
    public String toString() {
-      return "Quest(identifier="
-         + this.getIdentifier()
-         + ", name="
-         + this.getName()
-         + ", points="
-         + this.getPoints()
-         + ", story="
-         + this.isStory()
-         + ", first="
-         + this.isFirst()
-         + ", description="
-         + this.getDescription()
-         + ", next="
-         + this.getNext()
-         + ", delay="
-         + this.getDelay()
-         + ", stages="
-         + this.getStages()
-         + ")";
+      return "Quest(" + this.identifier + ")";
    }
 }
